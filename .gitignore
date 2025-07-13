@@ -7,3 +7,6 @@
 
 # File log
 *.log
+
+# Folder dependensi dari Node.js
+/node_modules
