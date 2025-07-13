@@ -1,4 +1,3 @@
-php
 <?php
 // includes/email_service.php
 // Service untuk mengirim email reset password
