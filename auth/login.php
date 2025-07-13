@@ -69,10 +69,10 @@ unset($_SESSION['success_message_register']);
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12A2.25 2.25 0 0020.25 14.25V3M3.75 3H20.25M3.75 3v.375c0 .621.504 1.125 1.125 1.125h15c.621 0 1.125-.504 1.125-1.125V3M3.75 6.75h16.5M3.75 10.5h16.5M7.5 14.25h9M10.5 18a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zM13.5 18a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                 </svg>
             </div>
-            <h1 class="text-3xl font-bold text-white mb-2">Corner Bites App</h1>
-            <p class="text-white/80 text-sm">Aplikasi Kasir dan Analisis Bisnis UMKM</p>
+            <h1 class="text-3xl font-bold text-white mb-2">Aplikasi Kalkulator HPP</h1>
+            <p class="text-white/80 text-sm">Sistem Kalkulasi Harga Pokok Produksi</p>
         </div>
-        
+
         <!-- Pesan Selamat Datang -->
         <div class="text-center mb-8">
             <h2 class="text-2xl font-semibold text-white mb-2">Selamat Datang Kembali!</h2>
@@ -125,7 +125,7 @@ unset($_SESSION['success_message_register']);
                     </button>
                 </div>
             </div>
-            
+
             <!-- Link Lupa Password -->
             <div class="text-right mb-4">
                 <a href="/cornerbites-sia/auth/auth_forgot_password.php" class="text-white/80 hover:text-white text-sm hover:underline">
@@ -154,7 +154,7 @@ unset($_SESSION['success_message_register']);
         function togglePassword() {
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eye-icon');
-            
+
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
                 eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>`;

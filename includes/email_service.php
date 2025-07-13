@@ -21,7 +21,59 @@ class EmailService {
     }
 
     /**
-     * Generate dan kirim password reset token
+     * Generate dan kirim temporary password via email dengan verifikasi username
+     */
+    public function sendPasswordResetEmailWithUsernameVerification($username, $email) {
+        try {
+            // Cek apakah kombinasi username dan email cocok
+            $stmt = $this->db->prepare("SELECT id, username FROM users WHERE username = ? AND email = ?");
+            $stmt->execute([$username, $email]);
+            $user = $stmt->fetch();
+
+            if (!$user) {
+                return ['success' => false, 'message' => 'Kombinasi username dan email tidak ditemukan atau tidak cocok'];
+            }
+
+            // Generate temporary password (8 karakter random)
+            $tempPassword = $this->generateTempPassword();
+            $hashedTempPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
+
+            // Update user dengan temporary password dan set must_change_password = 1
+            $stmt = $this->db->prepare("UPDATE users SET password = ?, must_change_password = 1 WHERE id = ?");
+            $stmt->execute([$hashedTempPassword, $user['id']]);
+
+            // Log activity
+            $logStmt = $this->db->prepare("
+                INSERT INTO activity_logs (user_id, username, activity_type, activity_description, user_agent) 
+                VALUES (?, ?, 'password_reset_email', 'Temporary password sent via email with username verification', ?)
+            ");
+            $logStmt->execute([
+                $user['id'], 
+                $user['username'], 
+                $_SERVER['HTTP_USER_AGENT'] ?? ''
+            ]);
+
+            // Kirim email dengan temporary password
+            $subject = 'Password Temporary - Kalkulator HPP';
+            $body = $this->getTempPasswordEmailTemplate($user['username'], $tempPassword);
+
+            $result = $this->sendEmail($email, $user['username'], $subject, $body);
+
+            if ($result['success']) {
+                error_log("Temporary password sent successfully for user: " . $user['username'] . " to email: " . $email);
+                error_log("Temporary password: " . $tempPassword);
+            }
+
+            return $result;
+
+        } catch (Exception $e) {
+            error_log("Error sending temporary password email: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Gagal mengirim email password temporary'];
+        }
+    }
+
+    /**
+     * Generate dan kirim temporary password via email (method lama untuk backward compatibility)
      */
     public function sendPasswordResetEmail($email) {
         try {
@@ -34,38 +86,56 @@ class EmailService {
                 return ['success' => false, 'message' => 'Email tidak ditemukan dalam sistem'];
             }
 
-            // Hapus token lama yang belum digunakan untuk email ini
-            $stmt = $this->db->prepare("DELETE FROM password_reset_tokens WHERE email = ? AND used = 0");
-            $stmt->execute([$email]);
+            // Generate temporary password (8 karakter random)
+            $tempPassword = $this->generateTempPassword();
+            $hashedTempPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
 
-            // Generate reset token yang lebih panjang
-            $token = bin2hex(random_bytes(40));
-            $expires_at = date('Y-m-d H:i:s', strtotime('+24 hours')); // Extended to 24 hours
+            // Update user dengan temporary password dan set must_change_password = 1
+            $stmt = $this->db->prepare("UPDATE users SET password = ?, must_change_password = 1 WHERE id = ?");
+            $stmt->execute([$hashedTempPassword, $user['id']]);
 
-            // Simpan token ke database dengan user_id
-            $stmt = $this->db->prepare("INSERT INTO password_reset_tokens (user_id, email, token, expires_at, used) VALUES (?, ?, ?, ?, 0)");
-            $stmt->execute([$user['id'], $email, $token, $expires_at]);
+            // Log activity
+            $logStmt = $this->db->prepare("
+                INSERT INTO activity_logs (user_id, username, activity_type, activity_description, user_agent) 
+                VALUES (?, ?, 'password_reset_email', 'Temporary password sent via email', ?)
+            ");
+            $logStmt->execute([
+                $user['id'], 
+                $user['username'], 
+                $_SERVER['HTTP_USER_AGENT'] ?? ''
+            ]);
 
-            // Kirim email dengan URL yang sesuai untuk produksi
-            $subject = 'Reset Password - Kalkulator HPP';
-            $resetLink = "https://" . $_SERVER['HTTP_HOST'] . "/cornerbites-sia/auth/reset_password.php?token=" . $token;
-
-            $body = $this->getPasswordResetTemplate($user['username'], $resetLink);
+            // Kirim email dengan temporary password
+            $subject = 'Password Temporary - Kalkulator HPP';
+            $body = $this->getTempPasswordEmailTemplate($user['username'], $tempPassword);
 
             $result = $this->sendEmail($email, $user['username'], $subject, $body);
 
             if ($result['success']) {
-                error_log("Password reset email sent successfully for user: " . $user['username'] . " to email: " . $email);
-                error_log("Reset token: " . $token);
-                error_log("Reset link: " . $resetLink);
+                error_log("Temporary password sent successfully for user: " . $user['username'] . " to email: " . $email);
+                error_log("Temporary password: " . $tempPassword);
             }
 
             return $result;
 
         } catch (Exception $e) {
-            error_log("Error sending password reset email: " . $e->getMessage());
-            return ['success' => false, 'message' => 'Gagal mengirim email reset password'];
+            error_log("Error sending temporary password email: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Gagal mengirim email password temporary'];
         }
+    }
+
+    /**
+     * Generate temporary password
+     */
+    private function generateTempPassword($length = 8) {
+        $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $tempPassword = '';
+        
+        for ($i = 0; $i < $length; $i++) {
+            $tempPassword .= $characters[rand(0, strlen($characters) - 1)];
+        }
+        
+        return $tempPassword;
     }
 
     /**
@@ -207,7 +277,7 @@ class EmailService {
         ";
     }
 
-    private function getPasswordResetTemplate($username, $resetLink) {
+    private function getTempPasswordEmailTemplate($username, $tempPassword) {
         return "
         <html>
         <head>
@@ -216,7 +286,8 @@ class EmailService {
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; }
                 .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
                 .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+                .password-box { background: #fff; border: 2px solid #667eea; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
+                .password-text { font-size: 24px; font-weight: bold; color: #667eea; letter-spacing: 3px; margin: 10px 0; }
                 .footer { font-size: 12px; color: #666; margin-top: 30px; text-align: center; }
                 .info-box { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
             </style>
@@ -224,34 +295,43 @@ class EmailService {
         <body>
             <div class='container'>
                 <div class='header'>
-                    <h1>🔒 Reset Password</h1>
-                    <p>Kalkulator HPP - Sistem Informasi Akuntansi</p>
+                    <h1>🔑 Password Temporary</h1>
+                    <p>Aplikasi Kalkulator HPP - Sistem Kalkulasi Harga Pokok Produksi</p>
                 </div>
                 <div class='content'>
                     <h2>Halo, {$username}!</h2>
-                    <p>Kami menerima permintaan untuk reset password akun Anda di sistem <strong>Kalkulator HPP</strong>. Untuk keamanan akun Anda, silakan klik tombol di bawah ini untuk membuat password baru.</p>
+                    <p>Kami telah membuatkan password temporary untuk akun Anda di sistem <strong>Aplikasi Kalkulator HPP</strong>.</p>
                     
-                    <p style='text-align: center;'>
-                        <a href='{$resetLink}' class='button'>🔗 Reset Password Sekarang</a>
-                    </p>
+                    <div class='password-box'>
+                        <p><strong>Password Temporary Anda:</strong></p>
+                        <div class='password-text'>{$tempPassword}</div>
+                        <p><small>Salin password di atas untuk login</small></p>
+                    </div>
                     
-                    <p>Atau salin link berikut ke browser Anda:</p>
-                    <p style='background: #f5f5f5; padding: 10px; border-radius: 5px; word-break: break-all;'>{$resetLink}</p>
+                    <div class='info-box'>
+                        <h4>📋 Langkah Selanjutnya:</h4>
+                        <ol>
+                            <li>Login ke sistem menggunakan username dan password temporary di atas</li>
+                            <li>Sistem akan meminta Anda mengganti password</li>
+                            <li>Buat password baru yang kuat dan mudah Anda ingat</li>
+                            <li>Setelah mengganti password, Anda dapat menggunakan sistem seperti biasa</li>
+                        </ol>
+                    </div>
                     
                     <div class='info-box'>
                         <h4>⚠️ Informasi Keamanan:</h4>
                         <ul>
-                            <li>Link ini akan kedaluwarsa dalam <strong>24 jam</strong></li>
-                            <li>Link hanya bisa digunakan <strong>sekali</strong></li>
-                            <li>Jika Anda tidak meminta reset password, <strong>abaikan email ini</strong></li>
-                            <li>Untuk keamanan, jangan bagikan link ini kepada siapapun</li>
+                            <li>Password temporary ini <strong>hanya untuk sekali login</strong></li>
+                            <li>Anda <strong>WAJIB</strong> mengganti password setelah login</li>
+                            <li>Jangan bagikan password ini kepada siapapun</li>
+                            <li>Jika Anda tidak meminta reset password, segera hubungi administrator</li>
                         </ul>
                     </div>
                 </div>
                 <div class='footer'>
-                    <p><strong>Kalkulator HPP</strong></p>
+                    <p><strong>Aplikasi Kalkulator HPP</strong></p>
                     <p>Email ini dikirim otomatis dari sistem. Jangan membalas email ini.</p>
-                    <p>© 2025 Kalkulator HPP. All rights reserved.</p>
+                    <p>© 2025 Aplikasi Kalkulator HPP. All rights reserved.</p>
                 </div>
             </div>
         </body>

@@ -1,10 +1,11 @@
 
 <?php
-// auth/reset_password.php
-require_once __DIR__ . '/../config/auth_config.php';
-require_once __DIR__ . '/../config/db.php';
+// auth/reset_password.php - DEPRECATED
+// File ini tidak diperlukan lagi karena menggunakan sistem temporary password via email
+// Redirect ke halaman login
 
-secureSessionStart();
+header("Location: /cornerbites-sia/auth/login.php");
+exit();
 
 // Jika sudah login, redirect ke dashboard
 if (isset($_SESSION['user_id'])) {

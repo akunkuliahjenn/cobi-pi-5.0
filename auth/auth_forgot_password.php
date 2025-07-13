@@ -18,28 +18,24 @@ $message = '';
 $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
 
-    if (empty($email)) {
-        $message = 'Email harus diisi!';
+    if (empty($username) || empty($email)) {
+        $message = 'Username dan email harus diisi!';
         $message_type = 'error';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = 'Format email tidak valid!';
         $message_type = 'error';
     } else {
         $emailService = new EmailService();
-        $result = $emailService->sendPasswordResetEmail($email);
+        $result = $emailService->sendPasswordResetEmailWithUsernameVerification($username, $email);
 
         if ($result['success']) {
-            $message = 'Link reset password telah dikirim ke email Anda!';
+            $message = 'Password temporary telah dikirim ke email Anda! Silakan cek email dan login dengan password temporary tersebut.';
             $message_type = 'success';
         } else {
-            // Berikan pesan yang lebih spesifik
-            if (strpos($result['message'], 'tidak ditemukan') !== false) {
-                $message = 'Email tidak terdaftar dalam sistem. Silakan hubungi administrator untuk mengatur email Anda.';
-            } else {
-                $message = $result['message'];
-            }
+            $message = $result['message'];
             $message_type = 'error';
         }
     }
@@ -71,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </svg>
             </div>
             <h1 class="text-3xl font-bold text-white mb-2">Lupa Password</h1>
-            <p class="text-white/80 text-sm">Masukkan email untuk reset password</p>
+            <p class="text-white/80 text-sm">Masukkan email untuk mendapat password temporary</p>
         </div>
 
         <?php if ($message): ?>
@@ -81,6 +77,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST" class="space-y-6">
+            <div>
+                <label for="username" class="block text-sm font-medium text-white/90 mb-2">Username</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    </div>
+                    <input type="text" id="username" name="username" required
+                           class="w-full pl-10 pr-4 py-3 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/60 transition duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white/30"
+                           placeholder="Masukkan username Anda">
+                </div>
+            </div>
+
             <div>
                 <label for="email" class="block text-sm font-medium text-white/90 mb-2">Email</label>
                 <div class="relative">
@@ -97,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <button type="submit" 
                     class="w-full py-3 px-6 text-white font-semibold rounded-xl shadow-lg transition duration-300 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-indigo-300/50">
-                Kirim Link Reset Password
+                Kirim Password Temporary
             </button>
         </form>
 

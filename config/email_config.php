@@ -10,7 +10,7 @@ return [
         'password' => 'cacx axhi kgqr hadu',    // App Password Gmail dari Google Account
         'encryption' => 'tls',
         'from_email' => 'akunkuliah.jennieferr293@gmail.com',
-        'from_name' => 'Corner Bites SIA System'
+        'from_name' => 'Aplikasi Kalkulator HPP System'
     ],
     'settings' => [
         'token_expiry_hours' => 1, // Token expired dalam 1 jam

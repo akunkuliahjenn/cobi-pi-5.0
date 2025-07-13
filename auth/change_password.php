@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ganti Password - Corner Bites SIA</title>
+    <title>Ganti Password - Aplikasi Kalkulator HPP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .gradient-bg {

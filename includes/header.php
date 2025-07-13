@@ -7,12 +7,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Informasi Akuntansi UMKM - Corner Bites</title>
+    <title>Aplikasi Kalkulator HPP - Sistem Kalkulasi Harga Pokok Produksi</title>
     <!-- Tailwind CSS via CDN untuk development -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Custom CSS for theming -->
     <link rel="stylesheet" href="/cornerbites-sia/assets/css/style.css">
-    <title><?php echo $page_title ?? 'Corner Bites SIA'; ?></title>
+    <title><?php echo $page_title ?? 'Aplikasi Kalkulator HPP'; ?></title>
 
     <!-- Font Inter dari Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

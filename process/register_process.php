@@ -12,13 +12,20 @@ require_once __DIR__ . '/../config/db.php'; // Sertakan file koneksi database
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
     $confirm_password = trim($_POST['confirm_password'] ?? '');
     $role = 'user'; // Default role untuk registrasi melalui form ini
 
     // Validasi input
-    if (empty($username) || empty($password) || empty($confirm_password)) {
+    if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
         $_SESSION['error_message_register'] = 'Semua field harus diisi.';
+        header("Location: /cornerbites-sia/auth/register.php");
+        exit();
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $_SESSION['error_message_register'] = 'Format email tidak valid.';
         header("Location: /cornerbites-sia/auth/register.php");
         exit();
     }
@@ -47,12 +54,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit();
         }
 
+        // Cek apakah email sudah ada
+        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            $_SESSION['error_message_register'] = 'Email sudah digunakan. Gunakan email lain.';
+            header("Location: /cornerbites-sia/auth/register.php");
+            exit();
+        }
+
         // Hash password sebelum disimpan
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-        // Masukkan data user baru ke database dengan role 'user'
-        $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
-        if ($stmt->execute([$username, $hashed_password, $role])) {
+        // Masukkan data user baru ke database dengan email
+        $stmt = $conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
+        if ($stmt->execute([$username, $email, $hashed_password, $role])) {
             // Log registration activity
             require_once __DIR__ . '/../includes/activity_logger.php';
             logActivity($user_id, $username, 'register', 'User ' . $username . ' baru saja mendaftar', $conn);
