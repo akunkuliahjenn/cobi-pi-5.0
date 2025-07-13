@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lupa Password - Corner Bites App</title>
+    <title>Lupa Password - Kalkulator HPP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </svg>
             </div>
             <h1 class="text-3xl font-bold text-white mb-2">Lupa Password</h1>
-            <p class="text-white/80 text-sm">Masukkan email untuk reset password</p>
+            <p class="text-white/80 text-sm">Masukkan email untuk reset password Kalkulator HPP</p>
         </div>
 
         <?php if ($message): ?>
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="text-center mt-6 pt-6 border-t border-white/20">
             <p class="text-white/70 text-sm">
                 Ingat password? 
-                <a href="/cornerbites-sia/auth/login.php" class="text-white font-semibold hover:underline ml-1">Login</a>
+                <a href="/cornerbites-sia/auth/login.php" class="text-white font-semibold hover:underline ml-1">Kembali ke Login</a>
             </p>
         </div>
     </div>
