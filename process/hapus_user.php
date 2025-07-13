@@ -46,23 +46,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['user_id'])) {
             exit();
         }
 
-        // Hapus atau update semua data terkait pengguna
-        // 1. Hapus semua transaksi terkait
-        $stmtDeleteTransactions = $conn->prepare("DELETE FROM transactions WHERE user_id = ?");
-        $stmtDeleteTransactions->execute([$user_id_to_delete]);
-
-        // 2. Hapus transaction_items yang terkait (jika ada)
-        $stmtDeleteTransactionItems = $conn->prepare("DELETE FROM transaction_items WHERE transaction_id IN (SELECT id FROM transactions WHERE user_id = ?)");
-        $stmtDeleteTransactionItems->execute([$user_id_to_delete]);
-
-        // 3. Hapus data produk, bahan baku, dan data lainnya
-        $tablesToClean = ['products', 'raw_materials', 'product_recipes', 'overhead_costs', 'labor_costs'];
+        // Hapus data terkait pengguna dari tabel yang ada
+        $tablesToClean = [
+            'product_overhead_manual',
+            'product_labor_manual', 
+            'product_recipes',
+            'products',
+            'raw_materials',
+            'overhead_costs',
+            'labor_costs'
+        ];
+        
         foreach ($tablesToClean as $table) {
-            $stmtClean = $conn->prepare("DELETE FROM `$table` WHERE user_id = ?");
-            $stmtClean->execute([$user_id_to_delete]);
+            // Cek apakah tabel ada sebelum mencoba menghapus
+            $checkTable = $conn->prepare("SHOW TABLES LIKE '$table'");
+            $checkTable->execute();
+            if ($checkTable->rowCount() > 0) {
+                $stmtClean = $conn->prepare("DELETE FROM `$table` WHERE user_id = ?");
+                $stmtClean->execute([$user_id_to_delete]);
+            }
         }
 
-        // 4. Hapus pengguna dari database
+        // Hapus activity logs terkait user (set user_id ke NULL karena FK constraint)
+        $stmtUpdateLogs = $conn->prepare("UPDATE activity_logs SET user_id = NULL WHERE user_id = ?");
+        $stmtUpdateLogs->execute([$user_id_to_delete]);
+
+        // Hapus password reset tokens jika ada
+        $stmtDeleteTokens = $conn->prepare("DELETE FROM password_reset_tokens WHERE user_id = ?");
+        $stmtDeleteTokens->execute([$user_id_to_delete]);
+
+        // Hapus pengguna dari database
         $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
         if ($stmt->execute([$user_id_to_delete])) {
             $conn->commit();
@@ -114,21 +127,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['user_id'])) {
             exit();
         }
 
-        // Hapus atau update semua data terkait pengguna
-        $stmtDeleteTransactions = $conn->prepare("DELETE FROM transactions WHERE user_id = ?");
-        $stmtDeleteTransactions->execute([$user_id_to_delete]);
-
-        // Hapus data dari tabel lainnya
-        $tablesToClean = ['products', 'raw_materials', 'product_recipes', 'overhead_costs', 'labor_costs'];
+        // Hapus data terkait pengguna dari tabel yang ada
+        $tablesToClean = [
+            'product_overhead_manual',
+            'product_labor_manual', 
+            'product_recipes',
+            'products',
+            'raw_materials',
+            'overhead_costs',
+            'labor_costs'
+        ];
+        
         foreach ($tablesToClean as $table) {
-            try {
+            // Cek apakah tabel ada sebelum mencoba menghapus
+            $checkTable = $conn->prepare("SHOW TABLES LIKE '$table'");
+            $checkTable->execute();
+            if ($checkTable->rowCount() > 0) {
                 $stmtClean = $conn->prepare("DELETE FROM `$table` WHERE user_id = ?");
                 $stmtClean->execute([$user_id_to_delete]);
-            } catch (PDOException $e) {
-                // Abaikan error jika tabel tidak ada
-                continue;
             }
         }
+
+        // Hapus activity logs terkait user (set user_id ke NULL karena FK constraint)
+        $stmtUpdateLogs = $conn->prepare("UPDATE activity_logs SET user_id = NULL WHERE user_id = ?");
+        $stmtUpdateLogs->execute([$user_id_to_delete]);
+
+        // Hapus password reset tokens jika ada
+        $stmtDeleteTokens = $conn->prepare("DELETE FROM password_reset_tokens WHERE user_id = ?");
+        $stmtDeleteTokens->execute([$user_id_to_delete]);
 
         // Hapus pengguna dari database
         $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");

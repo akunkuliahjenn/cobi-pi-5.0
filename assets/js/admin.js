@@ -150,15 +150,7 @@ function editUser(userId) {
     window.location.href = `users.php?edit=${userId}`;
 }
 
-function resetPassword(userId) {
-    const modal = document.getElementById('resetPasswordModal');
-    const userIdInput = document.getElementById('resetUserId');
-    
-    if (modal && userIdInput) {
-        userIdInput.value = userId;
-        modal.classList.remove('hidden');
-    }
-}
+// Reset password function removed - users can use forgot password feature instead
 
 function deleteUser(userId, username) {
     if (confirm(`Apakah Anda yakin ingin menghapus user "${username}"?`)) {
@@ -166,17 +158,4 @@ function deleteUser(userId, username) {
     }
 }
 
-function closeResetModal() {
-    const modal = document.getElementById('resetPasswordModal');
-    if (modal) {
-        modal.classList.add('hidden');
-    }
-}
-
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('resetPasswordModal');
-    if (modal && event.target === modal) {
-        closeResetModal();
-    }
-});
+// Reset password modal functions removed - users can use forgot password feature instead

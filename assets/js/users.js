@@ -105,20 +105,7 @@ function hideUserModal() {
     document.getElementById('userModal').classList.add('hidden');
 }
 
-// Show reset password modal
-function showResetPasswordModal(userId, username) {
-    const modal = document.getElementById('resetPasswordModal');
-    const userIdInput = document.getElementById('resetUserId');
-    const usernameSpan = document.getElementById('resetUsername');
-
-    if (modal && userIdInput && usernameSpan) {
-        userIdInput.value = userId;
-        usernameSpan.textContent = username;
-        modal.classList.remove('hidden');
-    }
-}
-
-// Hide reset password modal
+// Hide reset password modal - removed since feature is deprecated
 function hideResetPasswordModal() {
     const modal = document.getElementById('resetPasswordModal');
     if (modal) {

@@ -246,10 +246,6 @@ if (isset($_SESSION['user_management_message'])) {
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <div class="flex space-x-2">
                                                         <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                                            <button onclick="showResetPasswordModal(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
-                                                                    class="text-yellow-600 hover:text-yellow-800 bg-yellow-50 hover:bg-yellow-100 px-3 py-1 rounded-md transition-colors">
-                                                                Reset Password
-                                                            </button>
                                                             <button onclick="deleteUser(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['username']); ?>')" 
                                                                     class="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md transition-colors">
                                                                 Hapus
@@ -405,39 +401,7 @@ if (isset($_SESSION['user_management_message'])) {
     </div>
 </div>
 
-<!-- Modal Reset Password -->
-<div id="resetPasswordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Reset Password</h3>
-                <p class="text-gray-600 mb-4">Reset password untuk user: <span id="resetUsername" class="font-semibold"></span></p>
-                <form action="/cornerbites-sia/admin/reset_password.php" method="POST">
-                    <input type="hidden" name="user_id" id="resetUserId" value="">
-                    <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Password Temporary</label>
-                                <input type="password" name="new_password" required 
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                       placeholder="Masukkan password temporary">
-                                <p class="text-xs text-gray-500 mt-1">Minimal 6 karakter. User akan diminta ganti password setelah login.</p>
-                            </div>
-                        </div>
-                    <div class="flex justify-end space-x-3 mt-6">
-                        <button type="button" onclick="hideResetPasswordModal()" 
-                                class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                            Batal
-                        </button>
-                        <button type="submit" 
-                                class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors">
-                            Reset Password
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <script src="/cornerbites-sia/assets/js/admin.js"></script>
 <script src="/cornerbites-sia/assets/js/users.js"></script>
