@@ -1,0 +1,14 @@
+
+{
+  "name": "cornerbites-sia",
+  "version": "1.0.0",
+  "description": "Sistem Informasi Akuntansi Corner Bites",
+  "scripts": {
+    "tailwind:build": "tailwindcss -i ./src/input.css -o ./assets/css/output.css --watch",
+    "tailwind:prod": "tailwindcss -i ./src/input.css -o ./assets/css/output.css --minify",
+    "build": "npm run tailwind:prod"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}
