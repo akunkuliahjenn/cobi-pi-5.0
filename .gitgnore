@@ -1,0 +1,9 @@
+# Folder dependensi dari Composer
+/vendor/
+
+# File environment yang berisi data rahasia (seperti password database)
+.env
+.env.local
+
+# File log
+*.log
