@@ -1,5 +1,5 @@
-
 <?php
+// Modified code based on user's request to fix SQL error and remove "php" text.
 // auth/forgot_password.php
 require_once __DIR__ . '/../config/auth_config.php';
 require_once __DIR__ . '/../includes/email_service.php';
@@ -19,7 +19,7 @@ $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
-    
+
     if (empty($email)) {
         $message = 'Email harus diisi!';
         $message_type = 'error';
@@ -29,9 +29,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $emailService = new EmailService();
         $result = $emailService->sendPasswordResetEmail($email);
-        
-        $message = $result['message'];
-        $message_type = $result['success'] ? 'success' : 'error';
+
+        if ($result['success']) {
+            $message = 'Link reset password telah dikirim ke email Anda!';
+            $message_type = 'success';
+        } else {
+            // Berikan pesan yang lebih spesifik
+            if (strpos($result['message'], 'tidak ditemukan') !== false) {
+                $message = 'Email tidak terdaftar dalam sistem. Silakan hubungi administrator untuk mengatur email Anda.';
+            } else {
+                $message = $result['message'];
+            }
+            $message_type = 'error';
+        }
     }
 }
 ?>
@@ -61,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </svg>
             </div>
             <h1 class="text-3xl font-bold text-white mb-2">Lupa Password</h1>
-            <p class="text-white/80 text-sm">Masukkan email untuk reset password Kalkulator HPP</p>
+            <p class="text-white/80 text-sm">Masukkan email untuk reset password</p>
         </div>
 
         <?php if ($message): ?>

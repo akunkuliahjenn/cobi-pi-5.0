@@ -19,8 +19,8 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
                 </svg>
             </div>
             <div>
-                <div class="text-lg font-semibold text-gray-800">Manajemen HPP</div>
-                <div class="text-lg font-semibold text-gray-800">Sederhana</div>
+                <div class="text-lg font-semibold text-gray-800">Kalkulator HPP</div>
+                <div class="text-xs text-gray-600">Harga Pokok Produksi</div>
             </div>
         </div>
     </div>

@@ -20,6 +20,7 @@ if (session_status() == PHP_SESSION_NONE) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user_id = $_POST['user_id'] ?? null; // ID user jika ini adalah operasi edit
     $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? ''); // Tambahkan email
     $password = trim($_POST['password'] ?? ''); // Bisa kosong jika tidak ingin mengubah password
     $role = trim($_POST['role'] ?? 'user'); // Default ke 'user' jika tidak diset
 
@@ -45,8 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 exit();
             }
 
-            $query = "UPDATE users SET username = ?, role = ?";
-            $params = [$username, $role];
+            $query = "UPDATE users SET username = ?, email = ?, role = ?";
+            $params = [$username, $email, $role];
             $query .= " WHERE id = ?";
             $params[] = $user_id;
 
@@ -86,8 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
 
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("INSERT INTO users (username, password, role, must_change_password) VALUES (?, ?, ?, 1)");
-            if ($stmt->execute([$username, $hashed_password, $role])) {
+            $stmt = $conn->prepare("INSERT INTO users (username, email, password, role, must_change_password) VALUES (?, ?, ?, ?, 1)");
+            if ($stmt->execute([$username, $email, $hashed_password, $role])) {
                 $conn->commit();
                 // Log create user activity
                 require_once __DIR__ . '/../includes/activity_logger.php';

@@ -1,59 +1,48 @@
-
 <?php
 // database/setup_password_reset.php
 // Script untuk setup tabel password reset
 
 require_once __DIR__ . '/../config/db.php';
 
-echo "🔧 Setting up Password Reset Table...\n\n";
+echo "🔧 Setting up Password Reset Table...\n";
 
 try {
-    // SQL untuk membuat tabel password_reset_tokens (SQLite)
-    $sql = "
-        CREATE TABLE IF NOT EXISTS password_reset_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            email VARCHAR(255) NOT NULL,
-            token VARCHAR(64) NOT NULL UNIQUE,
-            expires_at DATETIME NOT NULL,
-            used TINYINT(1) DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-        
-        CREATE INDEX IF NOT EXISTS idx_token ON password_reset_tokens(token);
-        CREATE INDEX IF NOT EXISTS idx_email ON password_reset_tokens(email);
-        CREATE INDEX IF NOT EXISTS idx_expires ON password_reset_tokens(expires_at);
-    ";
-    
-    // Eksekusi SQL
-    $db->exec($sql);
-    
-    echo "✅ Tabel password_reset_tokens berhasil dibuat!\n\n";
-    
-    // Cek apakah tabel sudah ada
-    $stmt = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='password_reset_tokens'");
-    $table = $stmt->fetch();
-    
-    if ($table) {
-        echo "✅ Tabel password_reset_tokens sudah tersedia.\n";
-        
-        // Cek struktur tabel
-        $stmt = $db->query("PRAGMA table_info(password_reset_tokens)");
-        $columns = $stmt->fetchAll();
-        
-        echo "📋 Struktur tabel:\n";
-        foreach ($columns as $column) {
-            echo "   - {$column['name']} ({$column['type']})\n";
-        }
+    // Drop tabel lama jika ada
+    $db->exec("DROP TABLE IF EXISTS password_resets");
+    $db->exec("DROP TABLE IF EXISTS password_reset_tokens");
+
+    // Buat tabel password_reset_tokens yang baru
+    $createTable = "
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        token VARCHAR(100) NOT NULL UNIQUE,
+        expires_at DATETIME NOT NULL,
+        used TINYINT(1) DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )";
+
+    $db->exec($createTable);
+
+    // Buat index untuk performa
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_token ON password_reset_tokens(token)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_email ON password_reset_tokens(email)");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_expires ON password_reset_tokens(expires_at)");
+
+    echo "✅ Tabel password_reset_tokens berhasil dibuat!\n";
+
+    // Verifikasi struktur tabel
+    $result = $db->query("PRAGMA table_info(password_reset_tokens)");
+    echo "\n📋 Struktur tabel password_reset_tokens:\n";
+    while ($row = $result->fetch()) {
+        echo "- {$row['name']} ({$row['type']})\n";
     }
-    
-    echo "\n🎯 Selanjutnya:\n";
-    echo "1. Setup Gmail App Password\n";
-    echo "2. Update config/email_config.php dengan App Password\n";
-    echo "3. Test email system\n";
-    
-} catch (PDOException $e) {
+
+    echo "\n🎉 Setup password reset selesai!\n";
+
+} catch (Exception $e) {
     echo "❌ Error: " . $e->getMessage() . "\n";
 }
 ?>
