@@ -8,9 +8,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Kalkulator HPP - Sistem Kalkulasi Harga Pokok Produksi</title>
-    <!-- Tailwind CSS via CDN untuk development -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Custom CSS for theming -->
+    <!-- Tailwind CSS Local Build -->
+    <link rel="stylesheet" href="/cornerbites-sia/assets/css/output.css">
+    <!-- Custom CSS for theming (fallback jika diperlukan) -->
     <link rel="stylesheet" href="/cornerbites-sia/assets/css/style.css">
     <title><?php echo $page_title ?? 'Aplikasi Kalkulator HPP'; ?></title>
 
