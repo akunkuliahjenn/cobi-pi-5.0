@@ -1,8 +1,54 @@
+
 // Global variables
 let searchOverheadTimeout;
 let searchLaborTimeout;
 let currentOverheadPage = 1;
 let currentLaborPage = 1;
+
+// Function to show notification at top and scroll to top
+function showNotification(message, type = 'success') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `mb-6 p-4 rounded-lg border-l-4 ${type === 'success' ? 'bg-green-50 border-green-400 text-green-700' : 'bg-red-50 border-red-400 text-red-700'}`;
+    notification.innerHTML = `
+        <div class="flex">
+            <div class="flex-shrink-0">
+                ${type === 'success' ? 
+                    '<svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>' :
+                    '<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>'
+                }
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+        </div>
+    `;
+
+    // Find container and insert notification
+    const container = document.querySelector('.max-w-7xl.mx-auto');
+    const header = container.querySelector('.mb-8');
+    
+    // Remove any existing notifications
+    const existingNotifications = container.querySelectorAll('.mb-6.p-4.rounded-lg.border-l-4');
+    existingNotifications.forEach(notif => {
+        if (notif.querySelector('.text-sm.font-medium')) {
+            notif.remove();
+        }
+    });
+    
+    // Insert new notification after header
+    header.insertAdjacentElement('afterend', notification);
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Auto-remove notification after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
 
 // Reset form overhead
 function resetOverheadForm() {
@@ -51,7 +97,11 @@ function resetLaborForm() {
 function editOverhead(overhead) {
     document.getElementById('overhead_id_to_edit').value = overhead.id;
     document.getElementById('overhead_name').value = overhead.name;
-    document.getElementById('overhead_amount').value = overhead.amount;
+
+    // Format amount dengan pemisah ribuan
+    const amount = parseFloat(overhead.amount);
+    document.getElementById('overhead_amount').value = amount.toLocaleString('id-ID');
+
     document.getElementById('overhead_description').value = overhead.description || '';
     document.getElementById('allocation_method').value = overhead.allocation_method || 'per_batch';
     document.getElementById('estimated_uses').value = overhead.estimated_uses || 1;
@@ -73,7 +123,10 @@ function editOverhead(overhead) {
 function editLabor(labor) {
     document.getElementById('labor_id_to_edit').value = labor.id;
     document.getElementById('labor_position_name').value = labor.position_name;
-    document.getElementById('labor_hourly_rate').value = labor.hourly_rate;
+
+    // Format hourly_rate dengan pemisah ribuan
+    const rate = parseFloat(labor.hourly_rate);
+    document.getElementById('labor_hourly_rate').value = rate.toLocaleString('id-ID');
 
     document.getElementById('labor_form_title').textContent = 'Edit Posisi Tenaga Kerja';
     document.getElementById('labor_submit_button').innerHTML = `
@@ -102,15 +155,19 @@ function deleteOverhead(id, name) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Overhead berhasil dihapus!');
+                showNotification('Biaya overhead berhasil dihapus!', 'success');
                 loadOverheadData(currentOverheadPage);
+                // Pastikan scroll ke atas setelah reload data
+                setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 100);
             } else {
-                alert('Gagal menghapus overhead: ' + data.message);
+                showNotification('Gagal menghapus overhead: ' + data.message, 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Terjadi kesalahan saat menghapus overhead.');
+            showNotification('Terjadi kesalahan saat menghapus overhead.', 'error');
         });
     }
 }
@@ -129,15 +186,19 @@ function deleteLabor(id, name) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Data tenaga kerja berhasil dihapus!');
+                showNotification('Data tenaga kerja berhasil dihapus!', 'success');
                 loadLaborData(currentLaborPage);
+                // Pastikan scroll ke atas setelah reload data
+                setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 100);
             } else {
-                alert('Gagal menghapus data tenaga kerja: ' + data.message);
+                showNotification('Gagal menghapus data tenaga kerja: ' + data.message, 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Terjadi kesalahan saat menghapus data tenaga kerja.');
+            showNotification('Terjadi kesalahan saat menghapus data tenaga kerja.', 'error');
         });
     }
 }
@@ -261,23 +322,79 @@ document.addEventListener('DOMContentLoaded', function() {
         laborCancelButton.addEventListener('click', resetLaborForm);
     }
 
-    // Format number inputs
+    // Format number inputs dengan validasi ketat hanya angka
     const amountInput = document.getElementById('overhead_amount');
     if (amountInput) {
+        // Prevent non-numeric input
+        amountInput.addEventListener('keypress', function(e) {
+            // Allow: backspace, delete, tab, escape, enter
+            if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true)) {
+                return;
+            }
+            // Ensure that it is a number and stop the keypress
+            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+
         amountInput.addEventListener('input', function() {
             let value = this.value.replace(/[^\d]/g, '');
             if (value) {
-                this.value = parseInt(value).toLocaleString('id-ID');
+                // Format as integer without decimals
+                this.value = parseInt(value).toLocaleString('id-ID').replace(',00', '');
+            }
+        });
+
+        // Prevent paste of non-numeric content
+        amountInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            let paste = (e.clipboardData || window.clipboardData).getData('text');
+            let numericValue = paste.replace(/[^\d]/g, '');
+            if (numericValue) {
+                this.value = parseInt(numericValue).toLocaleString('id-ID').replace(',00', '');
             }
         });
     }
 
     const rateInput = document.getElementById('labor_hourly_rate');
     if (rateInput) {
+        // Prevent non-numeric input
+        rateInput.addEventListener('keypress', function(e) {
+            // Allow: backspace, delete, tab, escape, enter
+            if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true)) {
+                return;
+            }
+            // Ensure that it is a number and stop the keypress
+            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+
         rateInput.addEventListener('input', function() {
             let value = this.value.replace(/[^\d]/g, '');
             if (value) {
-                this.value = parseInt(value).toLocaleString('id-ID');
+                // Format as integer without decimals
+                this.value = parseInt(value).toLocaleString('id-ID').replace(',00', '');
+            }
+        });
+
+        // Prevent paste of non-numeric content
+        rateInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            let paste = (e.clipboardData || window.clipboardData).getData('text');
+            let numericValue = paste.replace(/[^\d]/g, '');
+            if (numericValue) {
+                this.value = parseInt(numericValue).toLocaleString('id-ID').replace(',00', '');
             }
         });
     }
@@ -291,3 +408,4 @@ window.deleteLabor = deleteLabor;
 window.loadOverheadData = loadOverheadData;
 window.loadLaborData = loadLaborData;
 window.scrollToForm = scrollToForm;
+window.showNotification = showNotification;

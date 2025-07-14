@@ -10,7 +10,23 @@ require_once __DIR__ . '/../config/db.php';
 // Pesan sukses atau error setelah proses
 $message = '';
 $message_type = '';
-if (isset($_SESSION['overhead_message'])) {
+
+// Check for URL parameters first
+if (isset($_GET['message'])) {
+    switch ($_GET['message']) {
+        case 'overhead_deleted':
+            $message = 'Biaya overhead berhasil dihapus!';
+            $message_type = 'success';
+            break;
+        case 'labor_deleted':
+            $message = 'Data tenaga kerja berhasil dihapus!';
+            $message_type = 'success';
+            break;
+    }
+} elseif (isset($_GET['error'])) {
+    $message = $_GET['error'];
+    $message_type = 'error';
+} elseif (isset($_SESSION['overhead_message'])) {
     $message = $_SESSION['overhead_message']['text'];
     $message_type = $_SESSION['overhead_message']['type'];
     unset($_SESSION['overhead_message']);
