@@ -1,11 +1,10 @@
 
 <?php
-// auth/reset_password.php - DEPRECATED
-// File ini tidak diperlukan lagi karena menggunakan sistem temporary password via email
-// Redirect ke halaman login
+// auth/reset_password_new.php
+require_once __DIR__ . '/../config/auth_config.php';
+require_once __DIR__ . '/../includes/email_service.php';
 
-header("Location: /cornerbites-sia/auth/login.php");
-exit();
+secureSessionStart();
 
 // Jika sudah login, redirect ke dashboard
 if (isset($_SESSION['user_id'])) {
@@ -15,95 +14,45 @@ if (isset($_SESSION['user_id'])) {
     exit();
 }
 
-$message = '';
-$message_type = '';
-$token = $_GET['token'] ?? '';
-$valid_token = false;
-$user_email = '';
-
-// Validasi token
-if (!empty($token)) {
-    try {
-        $stmt = $db->prepare("SELECT email FROM password_reset_tokens WHERE token = ? AND expires_at > ? AND used = 0");
-        $stmt->execute([$token, date('Y-m-d H:i:s')]);
-        $reset_request = $stmt->fetch();
-        
-        if ($reset_request) {
-            $valid_token = true;
-            $user_email = $reset_request['email'];
-        } else {
-            // Debug: Cek apakah token ada tapi expired
-            $stmt_debug = $db->prepare("SELECT email, expires_at, used FROM password_reset_tokens WHERE token = ?");
-            $stmt_debug->execute([$token]);
-            $debug_info = $stmt_debug->fetch();
-            
-            if ($debug_info) {
-                if ($debug_info['used'] == 1) {
-                    $message = 'Link reset password sudah pernah digunakan!';
-                } elseif ($debug_info['expires_at'] <= date('Y-m-d H:i:s')) {
-                    $message = 'Link reset password sudah kedaluwarsa! Silakan buat permintaan baru.';
-                } else {
-                    $message = 'Token tidak valid!';
-                }
-            } else {
-                $message = 'Token tidak ditemukan!';
-            }
-            $message_type = 'error';
-        }
-    } catch (PDOException $e) {
-        error_log("Error validating reset token: " . $e->getMessage());
-        $message = 'Terjadi kesalahan sistem!';
-        $message_type = 'error';
-    }
-} else {
-    $message = 'Token reset password tidak ditemukan!';
-    $message_type = 'error';
+// Pastikan ada token dari verifikasi OTP
+if (!isset($_SESSION['reset_token']) || !isset($_SESSION['reset_user_id'])) {
+    header("Location: /cornerbites-sia/auth/forgot_password.php");
+    exit();
 }
 
-// Proses reset password
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
-    $new_password = trim($_POST['new_password'] ?? '');
-    $confirm_password = trim($_POST['confirm_password'] ?? '');
+$resetToken = $_SESSION['reset_token'];
+$message = '';
+$message_type = '';
 
-    if (empty($new_password) || empty($confirm_password)) {
+// Proses reset password
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $newPassword = trim($_POST['new_password'] ?? '');
+    $confirmPassword = trim($_POST['confirm_password'] ?? '');
+
+    if (empty($newPassword) || empty($confirmPassword)) {
         $message = 'Semua field harus diisi!';
         $message_type = 'error';
-    } elseif (strlen($new_password) < 6) {
+    } elseif (strlen($newPassword) < 6) {
         $message = 'Password minimal 6 karakter!';
         $message_type = 'error';
-    } elseif ($new_password !== $confirm_password) {
+    } elseif ($newPassword !== $confirmPassword) {
         $message = 'Konfirmasi password tidak cocok!';
         $message_type = 'error';
     } else {
-        try {
-            $db->beginTransaction();
+        $emailService = new EmailService();
+        $result = $emailService->resetPasswordWithToken($resetToken, $newPassword);
+        
+        if ($result['success']) {
+            // Clear all reset sessions
+            unset($_SESSION['reset_token'], $_SESSION['reset_user_id'], $_SESSION['otp_email'], $_SESSION['otp_user_id']);
             
-            // Update password user
-            $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-            $stmt = $db->prepare("UPDATE users SET password = ?, must_change_password = 0 WHERE email = ?");
-            $result = $stmt->execute([$hashed_password, $user_email]);
+            $message = 'Password berhasil direset! Silakan login dengan password baru.';
+            $message_type = 'success';
             
-            if ($result) {
-                // Tandai token sebagai sudah digunakan
-                $stmt = $db->prepare("UPDATE password_reset_tokens SET used = 1 WHERE token = ?");
-                $stmt->execute([$token]);
-                
-                $db->commit();
-                
-                $message = 'Password berhasil direset! Silakan login dengan password baru.';
-                $message_type = 'success';
-                
-                // Redirect ke login setelah 3 detik
-                header("refresh:3;url=/cornerbites-sia/auth/login.php");
-            } else {
-                $db->rollBack();
-                $message = 'Gagal mereset password!';
-                $message_type = 'error';
-            }
-        } catch (PDOException $e) {
-            $db->rollBack();
-            error_log("Error resetting password: " . $e->getMessage());
-            $message = 'Terjadi kesalahan sistem!';
+            // Redirect ke login setelah 3 detik
+            header("refresh:3;url=/cornerbites-sia/auth/login.php");
+        } else {
+            $message = $result['message'];
             $message_type = 'error';
         }
     }
@@ -115,15 +64,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password - Kalkulator HPP</title>
+    <title>Reset Password - Corner Bites SIA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #805ad5 100%); background-size: 400% 400%; animation: gradientShift 15s ease infinite; }
-        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .gradient-bg { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #805ad5 100%); 
+            background-size: 400% 400%; 
+            animation: gradientShift 15s ease infinite; 
+        }
+        @keyframes gradientShift { 
+            0% { background-position: 0% 50%; } 
+            50% { background-position: 100% 50%; } 
+            100% { background-position: 0% 50%; } 
+        }
     </style>
 </head>
 <body class="gradient-bg min-h-screen flex items-center justify-center p-4">
@@ -134,23 +91,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                 </svg>
             </div>
-            <h1 class="text-3xl font-bold text-white mb-2">Reset Password</h1>
-            <p class="text-white/80 text-sm">Masukkan password baru Anda</p>
+            <h1 class="text-3xl font-bold text-white mb-2">Buat Password Baru</h1>
+            <p class="text-white/80 text-sm">Masukkan password baru untuk akun Anda</p>
         </div>
 
         <?php if ($message): ?>
-            <div class="<?php echo $message_type === 'success' ? 'bg-green-500/30 border-green-400/50 text-green-100' : 'bg-red-500/30 border-red-400/50 text-red-100'; ?> px-4 py-3 rounded-xl mb-6 backdrop-blur-sm">
+            <div class="<?php echo $message_type === 'success' ? 'bg-green-500/30 border-green-400/50 text-green-100' : 'bg-red-500/30 border-red-400/50 text-red-100'; ?> px-4 py-3 rounded-xl mb-6 backdrop-blur-sm border">
                 <span class="font-medium"><?php echo htmlspecialchars($message); ?></span>
+                <?php if ($message_type === 'success'): ?>
+                    <div class="mt-2">
+                        <div class="flex items-center">
+                            <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-green-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span class="text-sm">Mengarahkan ke login...</span>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
-        <?php if ($valid_token && $message_type !== 'success'): ?>
+        <?php if ($message_type !== 'success'): ?>
             <form method="POST" class="space-y-6">
                 <div>
                     <label for="new_password" class="block text-sm font-medium text-white/90 mb-2">Password Baru</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-5 w-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                             </svg>
                         </div>
@@ -164,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
                     <label for="confirm_password" class="block text-sm font-medium text-white/90 mb-2">Konfirmasi Password</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-5 w-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                             </svg>
                         </div>
@@ -187,5 +155,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
             </p>
         </div>
     </div>
+
+    <script>
+        // Password strength checker
+        document.getElementById('new_password')?.addEventListener('input', function(e) {
+            const password = e.target.value;
+            // Bisa ditambahkan indikator kekuatan password
+        });
+
+        // Konfirmasi password match checker
+        document.getElementById('confirm_password')?.addEventListener('input', function(e) {
+            const password = document.getElementById('new_password').value;
+            const confirm = e.target.value;
+            
+            if (confirm && password !== confirm) {
+                e.target.setCustomValidity('Password tidak cocok');
+                e.target.style.borderColor = '#ef4444';
+            } else {
+                e.target.setCustomValidity('');
+                e.target.style.borderColor = '';
+            }
+        });
+
+        // Focus pada field pertama
+        document.getElementById('new_password')?.focus();
+    </script>
 </body>
 </html>

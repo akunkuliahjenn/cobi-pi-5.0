@@ -128,7 +128,7 @@ unset($_SESSION['success_message_register']);
 
             <!-- Link Lupa Password -->
             <div class="text-right mb-4">
-                <a href="/cornerbites-sia/auth/auth_forgot_password.php" class="text-white/80 hover:text-white text-sm hover:underline">
+                <a href="/cornerbites-sia/auth/forgot_password.php" class="text-white/80 hover:text-white text-sm hover:underline">
                     Lupa Password?
                 </a>
             </div>
